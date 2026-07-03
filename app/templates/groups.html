@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Linked groups</h1>
+    <p class="muted">Groups imported from the configured Signal account.</p>
+  </div>
+  <a class="button" href="/groups/import">Import groups</a>
+</section>
+
+<section class="panel">
+  {% if linked_groups %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Signal group id</th>
+            <th>Schedules</th>
+            <th>Imported</th>
+            <th class="actions-heading">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for group in linked_groups %}
+            <tr>
+              <td>{{ group.name }}</td>
+              <td class="mono clamp">{{ group.signal_group_id }}</td>
+              <td>{{ group.schedules|length }}</td>
+              <td>{{ group.imported_at|datetime }}</td>
+              <td>
+                <form method="post" action="/groups/{{ group.id }}/delete" class="table-actions">
+                  <button
+                    type="submit"
+                    class="button danger"
+                    onclick="return confirm('Delete this group and its schedules? Send history will be kept.');"
+                  >
+                    Delete
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty">No groups linked yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

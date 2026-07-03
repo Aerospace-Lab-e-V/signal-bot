@@ -1,0 +1,7 @@
+.git
+.pytest_cache
+__pycache__
+*/__pycache__
+.env
+app-data
+signal-cli-config

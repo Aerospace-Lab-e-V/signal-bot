@@ -1,0 +1,31 @@
+services:
+  signal-scheduler-web:
+    build: .
+    restart: always
+    environment:
+      - TZ=Europe/Berlin
+      - SIGNAL_SENDER_NUMBER=${SIGNAL_SENDER_NUMBER:?set SIGNAL_SENDER_NUMBER}
+      - SIGNAL_CLI_PATH=signal-cli
+      - SIGNAL_CLI_DATA_DIR=/signal-cli-config
+      - SIGNAL_CLI_TIMEOUT_SECONDS=120
+      - SIGNAL_RECEIVE_TIMEOUT_SECONDS=5
+      - SIGNAL_RECEIVE_INTERVAL_SECONDS=300
+      - DATABASE_URL=sqlite:////data/app.db
+      - SESSION_SECRET=${SESSION_SECRET:?set SESSION_SECRET}
+      - OIDC_ISSUER=${OIDC_ISSUER:?set OIDC_ISSUER}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:?set OIDC_CLIENT_ID}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:?set OIDC_CLIENT_SECRET}
+      - OIDC_ALLOWED_GROUP=${OIDC_ALLOWED_GROUP:-}
+      - OIDC_ALLOWED_GROUPS=${OIDC_ALLOWED_GROUPS:-}
+      - OIDC_ALLOWED_ROLE=${OIDC_ALLOWED_ROLE:-}
+      - OIDC_DEBUG_CLAIMS=${OIDC_DEBUG_CLAIMS:-false}
+      - AUTH_BYPASS_FOR_DEVELOPMENT=${AUTH_BYPASS_FOR_DEVELOPMENT:-false}
+      - APP_BASE_URL=${APP_BASE_URL:-}
+      - LOGOUT_REDIRECT_URL=${LOGOUT_REDIRECT_URL:-}
+      - APP_TIMEZONE=${APP_TIMEZONE:-Europe/Berlin}
+      - MESSAGE_RETRY_INTERVAL_SECONDS=300
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    volumes:
+      - "./app-data:/data"
+      - "./signal-cli-config:/signal-cli-config"

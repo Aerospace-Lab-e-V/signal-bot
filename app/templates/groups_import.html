@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Import groups</h1>
+    <p class="muted">Select groups already known to the Signal account.</p>
+  </div>
+  <a class="button secondary" href="/groups">Back</a>
+</section>
+
+{% if error %}
+  <section class="notice error">{{ error }}</section>
+{% endif %}
+
+<section class="grid-list">
+  {% for group in available_groups %}
+    <article class="item-card">
+      <div>
+        <h2>{{ group.name }}</h2>
+        <p class="mono clamp">{{ group.signal_group_id }}</p>
+      </div>
+      {% if group.linked %}
+        <span class="badge success">linked</span>
+      {% else %}
+        <form method="post" action="/groups/import">
+          <input type="hidden" name="signal_group_id" value="{{ group.signal_group_id }}">
+          <input type="hidden" name="name" value="{{ group.name }}">
+          <button type="submit" class="button">Import</button>
+        </form>
+      {% endif %}
+    </article>
+  {% else %}
+    <section class="panel">
+      <p class="empty">No groups were returned by Signal.</p>
+    </section>
+  {% endfor %}
+</section>
+{% endblock %}

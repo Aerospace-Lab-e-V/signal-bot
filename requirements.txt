@@ -1,0 +1,9 @@
+apscheduler
+authlib
+fastapi
+httpx
+itsdangerous
+jinja2
+python-multipart
+sqlalchemy
+uvicorn[standard]

@@ -1,0 +1,5 @@
+signal-cli-config/*
+signal-cli-config.backup/*
+retry-data/*
+.env
+app-data/*

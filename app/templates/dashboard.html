@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="muted">Scheduled Signal messages for linked group channels.</p>
+  </div>
+  <a class="button" href="/schedules/new">New schedule</a>
+</section>
+
+<section class="metrics">
+  <div class="metric">
+    <span class="metric-value">{{ group_count }}</span>
+    <span class="metric-label">Linked groups</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value">{{ active_schedule_count }}</span>
+    <span class="metric-label">Active schedules</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value">{{ schedule_count }}</span>
+    <span class="metric-label">Total schedules</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value">{{ retry_count }}</span>
+    <span class="metric-label">Pending retries</span>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="section-head">
+    <h2>Recent attempts</h2>
+    <a href="/attempts">View all</a>
+  </div>
+  {% if recent_attempts %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Group</th>
+            <th>Status</th>
+            <th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for attempt in recent_attempts %}
+            <tr>
+              <td>{{ attempt.attempted_at|datetime }}</td>
+              <td>{{ attempt.group.name if attempt.group else "Unknown" }}</td>
+              <td><span class="badge {{ attempt.status }}">{{ attempt.status }}</span></td>
+              <td class="message-cell">{{ attempt.message }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty">No send attempts yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

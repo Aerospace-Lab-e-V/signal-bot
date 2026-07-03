@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title or "Signal Scheduler" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/">Signal Scheduler</a>
+      {% if user %}
+        <nav class="nav">
+          <a href="/groups">Groups</a>
+          <a href="/schedules">Schedules</a>
+          <a href="/attempts">History</a>
+        </nav>
+        <div class="account">
+          {% if settings.auth_bypass_for_development %}
+            <span class="badge pending">auth bypass</span>
+          {% endif %}
+          <span>{{ user_display_name }}</span>
+          {% if not settings.auth_bypass_for_development %}
+            <form method="post" action="/auth/logout">
+              <button type="submit" class="button ghost">Logout</button>
+            </form>
+          {% endif %}
+        </div>
+      {% endif %}
+    </header>
+    <main class="page">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

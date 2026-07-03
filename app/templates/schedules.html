@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Schedules</h1>
+    <p class="muted">One-off, weekly, and monthly Signal messages.</p>
+  </div>
+  <a class="button" href="/schedules/new">New schedule</a>
+</section>
+
+<section class="grid-list">
+  {% for schedule in schedules %}
+    <article class="item-card schedule-card">
+      <div class="schedule-main">
+        <div class="row-gap">
+          <span class="badge {{ 'success' if schedule.enabled else 'muted-badge' }}">
+            {{ "enabled" if schedule.enabled else "disabled" }}
+          </span>
+          <span class="badge neutral">{{ schedule.schedule_type.replace("_", " ") }}</span>
+        </div>
+        <h2>{{ schedule.group.name }}</h2>
+        <p class="message-preview">{{ schedule.message }}</p>
+        <p class="muted">
+          {% if schedule.schedule_type == "one_off" %}
+            {{ schedule.run_at|datetime }} {{ schedule.timezone }}
+          {% elif schedule.schedule_type == "weekly" %}
+            Weekly at {{ schedule.time_of_day }} {{ schedule.timezone }}
+          {% else %}
+            Monthly on day {{ schedule.day_of_month }} at {{ schedule.time_of_day }} {{ schedule.timezone }}
+          {% endif %}
+        </p>
+      </div>
+      <div class="actions">
+        <a class="button secondary" href="/schedules/{{ schedule.id }}/edit">Edit</a>
+        <form method="post" action="/schedules/{{ schedule.id }}/toggle">
+          <button type="submit" class="button ghost">{{ "Disable" if schedule.enabled else "Enable" }}</button>
+        </form>
+        <form method="post" action="/schedules/{{ schedule.id }}/delete">
+          <button type="submit" class="button danger">Delete</button>
+        </form>
+      </div>
+    </article>
+  {% else %}
+    <section class="panel">
+      <p class="empty">No schedules yet.</p>
+    </section>
+  {% endfor %}
+</section>
+{% endblock %}

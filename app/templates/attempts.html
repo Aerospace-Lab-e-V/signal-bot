@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>History</h1>
+    <p class="muted">Recent send attempts and retry queue state.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="section-head">
+    <h2>Send attempts</h2>
+  </div>
+  {% if attempts %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Group</th>
+            <th>Status</th>
+            <th>HTTP</th>
+            <th>Message</th>
+            <th>Error</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for attempt in attempts %}
+            <tr>
+              <td>{{ attempt.attempted_at|datetime }}</td>
+              <td>{{ attempt.group.name if attempt.group else "Unknown" }}</td>
+              <td><span class="badge {{ attempt.status }}">{{ attempt.status }}</span></td>
+              <td>{{ attempt.response_status_code or "" }}</td>
+              <td class="message-cell">{{ attempt.message }}</td>
+              <td class="message-cell">{{ attempt.error_message or "" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty">No send attempts yet.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="section-head">
+    <h2>Retry queue</h2>
+  </div>
+  {% if retries %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>First failed</th>
+            <th>Group</th>
+            <th>Status</th>
+            <th>Attempts</th>
+            <th>Expires</th>
+            <th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for retry in retries %}
+            <tr>
+              <td>{{ retry.first_failed_at|datetime }}</td>
+              <td>{{ retry.group.name if retry.group else "Unknown" }}</td>
+              <td><span class="badge {{ retry.status }}">{{ retry.status }}</span></td>
+              <td>{{ retry.attempts }}</td>
+              <td>{{ retry.expires_at|datetime }}</td>
+              <td class="message-cell">{{ retry.message }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty">No retry entries.</p>
+  {% endif %}
+</section>
+{% endblock %}

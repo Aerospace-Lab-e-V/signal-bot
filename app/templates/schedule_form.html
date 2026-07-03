@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>{{ title }}</h1>
+    <p class="muted">Configure the target group, message, and delivery cadence.</p>
+  </div>
+  <a class="button secondary" href="/schedules">Back</a>
+</section>
+
+{% if errors %}
+  <section class="notice error">
+    {% for error in errors %}
+      <div>{{ error }}</div>
+    {% endfor %}
+  </section>
+{% endif %}
+
+<form method="post" action="{{ action }}" class="panel form-panel">
+  <div class="field">
+    <label for="group_id">Group</label>
+    <select id="group_id" name="group_id" required>
+      <option value="">Select group</option>
+      {% for group in groups %}
+        <option value="{{ group.id }}" {% if (form.get("group_id")|string) == (group.id|string) %}selected{% endif %}>
+          {{ group.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="message">Message</label>
+    <textarea id="message" name="message" rows="8" required>{{ form.get("message", "") }}</textarea>
+  </div>
+
+  <div class="schedule-settings">
+    <div class="split">
+      <div class="field">
+        <label for="schedule_type">Task timing</label>
+        <select id="schedule_type" name="schedule_type" required>
+          <option value="one_off" {% if form.get("schedule_type") == "one_off" %}selected{% endif %}>One-off task</option>
+          <option value="weekly" {% if form.get("schedule_type", "weekly") == "weekly" %}selected{% endif %}>Repeating weekly</option>
+          <option value="monthly" {% if form.get("schedule_type") == "monthly" %}selected{% endif %}>Repeating monthly</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="timezone">Timezone</label>
+        <input id="timezone" name="timezone" value="{{ form.get("timezone", settings.app_timezone) }}" required>
+      </div>
+    </div>
+
+    <section class="timing-panel" data-schedule-section="one_off" {% if form.get("schedule_type", "weekly") != "one_off" %}hidden{% endif %}>
+      <div class="timing-panel-head">
+        <h2>One-off task</h2>
+        <p class="muted">Runs once at this date and time, then disables itself after a successful send.</p>
+      </div>
+      <div class="split">
+        <div class="field">
+          <label for="run_at_date">Date</label>
+          <input id="run_at_date" name="run_at_date" type="date" value="{{ form.get("run_at_date", "") }}" data-required-when-active>
+        </div>
+        <div class="field">
+          <label for="run_at_time">Time</label>
+          <input id="run_at_time" name="run_at_time" type="time" value="{{ form.get("run_at_time", "") }}" data-required-when-active>
+        </div>
+      </div>
+    </section>
+
+    <section class="timing-panel" data-schedule-section="recurring" {% if form.get("schedule_type", "weekly") == "one_off" %}hidden{% endif %}>
+      <div class="timing-panel-head">
+        <h2>Repeating task</h2>
+        <p class="muted">Runs on the selected cadence until you disable or delete the schedule.</p>
+      </div>
+      <div class="split">
+        <div class="field" data-repeat-field="weekly">
+          <label for="day_of_week">Weekly day</label>
+          <select id="day_of_week" name="day_of_week" data-required-when-active>
+            {% for value, label in weekdays %}
+              <option value="{{ value }}" {% if (form.get("day_of_week", 0)|string) == (value|string) %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field" data-repeat-field="monthly">
+          <label for="day_of_month">Monthly day</label>
+          <input id="day_of_month" name="day_of_month" type="number" min="1" max="31" value="{{ form.get("day_of_month", 1) }}" data-required-when-active>
+        </div>
+        <div class="field">
+          <label for="time_of_day">Time</label>
+          <input id="time_of_day" name="time_of_day" type="time" value="{{ form.get("time_of_day", "") }}" data-required-when-active>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <label class="check-row">
+    <input type="checkbox" name="enabled" {% if form.get("enabled", True) %}checked{% endif %}>
+    Enabled
+  </label>
+
+  <div class="form-actions">
+    <button type="submit" class="button">Save schedule</button>
+    <a class="button ghost" href="/schedules">Cancel</a>
+  </div>
+</form>
+
+<script>
+  (() => {
+    const scheduleType = document.querySelector("#schedule_type");
+    const sections = document.querySelectorAll("[data-schedule-section]");
+    const repeatFields = document.querySelectorAll("[data-repeat-field]");
+
+    function setControlsEnabled(container, enabled) {
+      container.querySelectorAll("input, select, textarea").forEach((control) => {
+        control.disabled = !enabled;
+        if (control.hasAttribute("data-required-when-active")) {
+          control.required = enabled;
+        }
+      });
+    }
+
+    function syncTimingFields() {
+      const value = scheduleType.value;
+      const isOneOff = value === "one_off";
+
+      sections.forEach((section) => {
+        const isActive = section.dataset.scheduleSection === (isOneOff ? "one_off" : "recurring");
+        section.hidden = !isActive;
+        setControlsEnabled(section, isActive);
+      });
+
+      repeatFields.forEach((field) => {
+        const isActive = field.dataset.repeatField === value;
+        field.hidden = !isActive;
+        setControlsEnabled(field, isActive);
+      });
+    }
+
+    if (scheduleType) {
+      scheduleType.addEventListener("change", syncTimingFields);
+      syncTimingFields();
+    }
+  })();
+</script>
+{% endblock %}
