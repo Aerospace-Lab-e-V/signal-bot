@@ -291,7 +291,12 @@ class SignalAPI:
             return SignalAPIResult(ok=False, error="SIGNAL_SENDER_NUMBER is not configured")
 
         logger.info("Receiving Signal updates")
-        result = self._run(["receive", "--timeout", str(self._receive_timeout_seconds)])
+        # This bot only consumes message text. Without --ignore-attachments,
+        # signal-cli stores every received media file in its persistent data
+        # directory indefinitely.
+        result = self._run(
+            ["receive", "--timeout", str(self._receive_timeout_seconds), "--ignore-attachments"]
+        )
         return self._result_from_command(result)
 
     def _identity_number(self, identity):

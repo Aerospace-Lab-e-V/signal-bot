@@ -70,7 +70,13 @@ The app data is stored in `./app-data/app.db`. Signal account data is stored in
 app; direct `signal-cli` commands use the raw base64 group id without that prefix.
 The app also runs `signal-cli receive` every `SIGNAL_RECEIVE_INTERVAL_SECONDS`
 seconds so sessions, groups, and future bot commands stay fresh. Set the interval
-to `0` to disable automatic receives.
+to `0` to disable automatic receives. Automatic receives ignore attachments
+because this bot only processes text commands; this prevents received media from
+growing `./signal-cli-config/attachments` without a bound.
+
+Container stdout/stderr uses Docker's rotating `local` log driver. The Compose
+configuration retains at most five 20 MB log files, rather than allowing the
+default `json-file` log to consume all available host storage.
 
 The old `message_sender.py` script is kept as a legacy reference, but the container
 now runs `uvicorn app.main:app`.

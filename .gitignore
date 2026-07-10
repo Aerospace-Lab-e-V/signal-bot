@@ -1,5 +1,6 @@
 signal-cli-config/*
 signal-cli-config.backup/*
 retry-data/*
+**/__pycache__/**
 .env
 app-data/*

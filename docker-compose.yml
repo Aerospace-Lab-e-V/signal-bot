@@ -29,3 +29,10 @@ services:
     volumes:
       - "./app-data:/data"
       - "./signal-cli-config:/signal-cli-config"
+    # Docker's default json-file logger grows without a limit unless rotation is
+    # configured. Keep enough history for diagnostics without filling the host.
+    logging:
+      driver: "local"
+      options:
+        max-size: "20m"
+        max-file: "5"

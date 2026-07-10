@@ -107,3 +107,18 @@ def test_list_groups_rejects_unexpected_payload(monkeypatch, tmp_path):
 
     assert result.ok is False
     assert "unexpected" in result.error
+
+
+def test_receive_ignores_attachments(monkeypatch, tmp_path):
+    calls = []
+
+    def fake_run(command, input, text, capture_output, timeout, check):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout="[]\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = make_api(tmp_path).receive_updates()
+
+    assert result.ok is True
+    assert calls[0][-4:] == ["receive", "--timeout", "1", "--ignore-attachments"]
