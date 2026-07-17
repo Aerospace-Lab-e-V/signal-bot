@@ -29,6 +29,10 @@ services:
     volumes:
       - "./app-data:/data"
       - "./signal-cli-config:/signal-cli-config"
+    # signal-cli/libsignal extracts native libraries into /tmp. Keep temporary
+    # data out of the container layer and put a hard ceiling on crash leftovers.
+    tmpfs:
+      - /tmp:size=512m,mode=1777
     # Docker's default json-file logger grows without a limit unless rotation is
     # configured. Keep enough history for diagnostics without filling the host.
     logging:

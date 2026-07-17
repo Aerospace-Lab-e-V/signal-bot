@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import subprocess
+import tempfile
 import threading
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -153,14 +154,21 @@ class SignalAPI:
 
         try:
             with _locked_signal_data_dir(self._signal_cli_data_dir):
-                completed = subprocess.run(
-                    command,
-                    input=stdin,
-                    text=True,
-                    capture_output=True,
-                    timeout=self._command_timeout_seconds,
-                    check=False,
-                )
+                # libsignal extracts native libraries at process startup. Give
+                # every short-lived signal-cli process a private directory so
+                # those files are removed as soon as the command exits.
+                with tempfile.TemporaryDirectory(prefix="signal-cli-") as temp_dir:
+                    env = os.environ.copy()
+                    env["TMPDIR"] = temp_dir
+                    completed = subprocess.run(
+                        command,
+                        input=stdin,
+                        text=True,
+                        capture_output=True,
+                        timeout=self._command_timeout_seconds,
+                        check=False,
+                        env=env,
+                    )
         except subprocess.TimeoutExpired as exc:
             logger.exception("signal-cli timed out while running %s", args[0] if args else "command")
             return _CommandResult(

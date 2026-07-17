@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 from signal_api import SignalAPI
@@ -16,7 +17,7 @@ def make_api(tmp_path):
 def test_send_message_success(monkeypatch, tmp_path):
     calls = []
 
-    def fake_run(command, input, text, capture_output, timeout, check):
+    def fake_run(command, input, text, capture_output, timeout, check, env):
         calls.append(
             {
                 "command": command,
@@ -25,6 +26,7 @@ def test_send_message_success(monkeypatch, tmp_path):
                 "capture_output": capture_output,
                 "timeout": timeout,
                 "check": check,
+                "env": env,
             }
         )
         return subprocess.CompletedProcess(command, 0, stdout='{"timestamp":123}\n', stderr="")
@@ -39,6 +41,8 @@ def test_send_message_success(monkeypatch, tmp_path):
     assert result.data[0]["data"] == {"timestamp": 123}
     assert calls[0]["input"] == "Hello"
     assert calls[0]["timeout"] == 5
+    assert calls[0]["env"]["TMPDIR"].startswith("/tmp/signal-cli-")
+    assert not os.path.exists(calls[0]["env"]["TMPDIR"])
     assert calls[0]["command"] == [
         "/usr/local/bin/signal-cli",
         "--data-dir",
@@ -55,7 +59,7 @@ def test_send_message_success(monkeypatch, tmp_path):
 
 
 def test_send_message_failure(monkeypatch, tmp_path):
-    def fake_run(command, input, text, capture_output, timeout, check):
+    def fake_run(command, input, text, capture_output, timeout, check, env):
         return subprocess.CompletedProcess(command, 3, stdout="", stderr="server offline")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -69,7 +73,11 @@ def test_send_message_failure(monkeypatch, tmp_path):
 
 
 def test_send_message_timeout(monkeypatch, tmp_path):
-    def fake_run(command, input, text, capture_output, timeout, check):
+    temp_dirs = []
+
+    def fake_run(command, input, text, capture_output, timeout, check, env):
+        temp_dirs.append(env["TMPDIR"])
+        assert os.path.isdir(env["TMPDIR"])
         raise subprocess.TimeoutExpired(command, timeout, output="", stderr="too slow")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -80,10 +88,11 @@ def test_send_message_timeout(monkeypatch, tmp_path):
     assert result.ok is False
     assert result.status_code == 124
     assert "too slow" in result.error
+    assert not os.path.exists(temp_dirs[0])
 
 
 def test_list_groups_success(monkeypatch, tmp_path):
-    def fake_run(command, input, text, capture_output, timeout, check):
+    def fake_run(command, input, text, capture_output, timeout, check, env):
         return subprocess.CompletedProcess(command, 0, stdout='[{"id":"abc","name":"Lab"}]\n', stderr="")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -97,7 +106,7 @@ def test_list_groups_success(monkeypatch, tmp_path):
 
 
 def test_list_groups_rejects_unexpected_payload(monkeypatch, tmp_path):
-    def fake_run(command, input, text, capture_output, timeout, check):
+    def fake_run(command, input, text, capture_output, timeout, check, env):
         return subprocess.CompletedProcess(command, 0, stdout='{"not":"a list"}\n', stderr="")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -112,7 +121,7 @@ def test_list_groups_rejects_unexpected_payload(monkeypatch, tmp_path):
 def test_receive_ignores_attachments(monkeypatch, tmp_path):
     calls = []
 
-    def fake_run(command, input, text, capture_output, timeout, check):
+    def fake_run(command, input, text, capture_output, timeout, check, env):
         calls.append(command)
         return subprocess.CompletedProcess(command, 0, stdout="[]\n", stderr="")
 
