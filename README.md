@@ -81,7 +81,8 @@ default `json-file` log to consume all available host storage.
 Each `signal-cli` command gets a private temporary directory that is deleted when
 the process exits, preventing extracted `libsignal` libraries from accumulating.
 Compose also mounts `/tmp` as a 512 MB tmpfs so crash leftovers cannot grow the
-container's writable layer without a bound.
+container's writable layer without a bound. The mount permits execution because
+libsignal loads its extracted native `.so` library directly from that directory.
 
 The old `message_sender.py` script is kept as a legacy reference, but the container
 now runs `uvicorn app.main:app`.
