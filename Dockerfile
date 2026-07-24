@@ -19,10 +19,10 @@ RUN set -eux; \
         SIGNAL_CLI_VERSION="${latest_url##*/v}"; \
     fi; \
     curl -fsSL \
-        "https://github.com/AsamK/signal-cli/releases/download/v${SIGNAL_CLI_VERSION}/signal-cli-${SIGNAL_CLI_VERSION}-Linux-native.tar.gz" \
+        "https://github.com/AsamK/signal-cli/releases/download/v${SIGNAL_CLI_VERSION}/signal-cli-${SIGNAL_CLI_VERSION}.tar.gz" \
         -o /tmp/signal-cli.tar.gz \
-    && tar -xzf /tmp/signal-cli.tar.gz -C /opt 
-RUN ln -sf /opt/signal-cli /usr/local/bin/signal-cli \
+    && tar -xzf /tmp/signal-cli.tar.gz -C /opt \
+    && ln -sf "/opt/signal-cli-${SIGNAL_CLI_VERSION}/bin/signal-cli" /usr/local/bin/signal-cli \
     && rm /tmp/signal-cli.tar.gz
 RUN signal-cli --version
     
@@ -35,6 +35,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 COPY signal_api.py ./
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
