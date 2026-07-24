@@ -1,6 +1,13 @@
+FROM eclipse-temurin:25-jre AS java-runtime
+
 FROM python:3.11-trixie
 
 ARG SIGNAL_CLI_VERSION=latest
+
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+COPY --from=java-runtime /opt/java/openjdk /opt/java/openjdk
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl tar \
@@ -14,10 +21,11 @@ RUN set -eux; \
     curl -fsSL \
         "https://github.com/AsamK/signal-cli/releases/download/v${SIGNAL_CLI_VERSION}/signal-cli-${SIGNAL_CLI_VERSION}-Linux-native.tar.gz" \
         -o /tmp/signal-cli.tar.gz \
-    && tar -xzf /tmp/signal-cli.tar.gz -C /opt \
-    && ln -sf /opt/signal-cli /usr/local/bin/signal-cli \
-    && signal-cli --version \
+    && tar -xzf /tmp/signal-cli.tar.gz -C /opt 
+RUN ln -sf /opt/signal-cli /usr/local/bin/signal-cli \
     && rm /tmp/signal-cli.tar.gz
+RUN signal-cli --version
+    
 
 RUN mkdir /code
 WORKDIR /code

@@ -37,6 +37,7 @@ def _signal_receive_timeout_seconds():
 
 SIGNAL_CLI_TIMEOUT_SECONDS = _signal_cli_timeout_seconds()
 SIGNAL_RECEIVE_TIMEOUT_SECONDS = _signal_receive_timeout_seconds()
+SIGNAL_CLI_ERROR_MAX_CHARS = 8_000
 
 
 @dataclass
@@ -97,6 +98,17 @@ def _parse_json_output(stdout: str):
     if len(parsed_lines) == 1:
         return parsed_lines[0]
     return parsed_lines
+
+
+def _summarize_command_error(error: str, max_chars: int = SIGNAL_CLI_ERROR_MAX_CHARS) -> str:
+    """Keep subprocess failures useful without persisting multi-megabyte crash dumps."""
+    if len(error) <= max_chars:
+        return error
+
+    marker = f"\n... signal-cli error truncated ({len(error)} characters total) ...\n"
+    available = max_chars - len(marker)
+    head_chars = (available * 3) // 4
+    return f"{error[:head_chars]}{marker}{error[-(available - head_chars):]}"
 
 
 def _group_id_for_cli(recipient: str) -> Optional[str]:
@@ -187,7 +199,11 @@ class SignalAPI:
         stderr = completed.stderr or ""
         data = _parse_json_output(stdout)
         if completed.returncode != 0:
-            logger.error("signal-cli failed: returncode=%s stderr=%s", completed.returncode, stderr.strip())
+            logger.error(
+                "signal-cli failed: returncode=%s stderr=%s",
+                completed.returncode,
+                _summarize_command_error(stderr.strip()),
+            )
 
         return _CommandResult(
             returncode=completed.returncode,
@@ -201,6 +217,7 @@ class SignalAPI:
             return SignalAPIResult(ok=True, status_code=0, data=result.data)
 
         error = result.stderr.strip() or result.stdout.strip() or f"signal-cli exited with code {result.returncode}"
+        error = _summarize_command_error(error)
         return SignalAPIResult(ok=False, status_code=result.returncode, data=result.data, error=error)
 
     def _send_to_recipient(self, recipient: str, message: str) -> SignalAPIResult:

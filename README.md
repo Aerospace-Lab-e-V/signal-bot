@@ -89,7 +89,10 @@ now runs `uvicorn app.main:app`.
 
 ## Signal CLI
 
-The Docker image installs the native `signal-cli` release. To run maintenance
+The Docker image installs the pinned JVM `signal-cli` release on Java 25. The
+JVM distribution is used because upstream describes the GraalVM native image as
+experimental, and native-image failures terminate the process without a useful
+recoverable Java exception. To run maintenance
 commands manually:
 
 ```sh

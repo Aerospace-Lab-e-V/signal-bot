@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from signal_api import SignalAPI
+from signal_api import SIGNAL_CLI_ERROR_MAX_CHARS, SignalAPI
 
 
 def make_api(tmp_path):
@@ -41,7 +41,7 @@ def test_send_message_success(monkeypatch, tmp_path):
     assert result.data[0]["data"] == {"timestamp": 123}
     assert calls[0]["input"] == "Hello"
     assert calls[0]["timeout"] == 5
-    assert calls[0]["env"]["TMPDIR"].startswith("/tmp/signal-cli-")
+    assert os.path.basename(calls[0]["env"]["TMPDIR"]).startswith("signal-cli-")
     assert not os.path.exists(calls[0]["env"]["TMPDIR"])
     assert calls[0]["command"] == [
         "/usr/local/bin/signal-cli",
@@ -70,6 +70,24 @@ def test_send_message_failure(monkeypatch, tmp_path):
     assert result.ok is False
     assert result.status_code == 3
     assert result.error == "server offline"
+
+
+def test_send_message_truncates_fatal_crash_dump(monkeypatch, tmp_path):
+    crash_dump = "StackOverflowError\n" + ("x" * 20_000) + "\nFatal error"
+
+    def fake_run(command, input, text, capture_output, timeout, check, env):
+        return subprocess.CompletedProcess(command, -9, stdout="", stderr=crash_dump)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = make_api(tmp_path).send_message(["group.abc"], "Hello")
+
+    assert result.ok is False
+    assert result.status_code == -9
+    assert len(result.error) == SIGNAL_CLI_ERROR_MAX_CHARS
+    assert result.error.startswith("StackOverflowError")
+    assert "signal-cli error truncated" in result.error
+    assert result.error.endswith("Fatal error")
 
 
 def test_send_message_timeout(monkeypatch, tmp_path):
