@@ -85,9 +85,29 @@ def test_send_message_truncates_fatal_crash_dump(monkeypatch, tmp_path):
     assert result.ok is False
     assert result.status_code == -9
     assert len(result.error) == SIGNAL_CLI_ERROR_MAX_CHARS
-    assert result.error.startswith("StackOverflowError")
+    assert result.error.startswith("signal-cli was terminated by SIGKILL")
     assert "signal-cli error truncated" in result.error
     assert result.error.endswith("Fatal error")
+
+
+def test_send_message_reports_sigkill_and_cgroup_memory(monkeypatch, tmp_path):
+    def fake_run(command, input, text, capture_output, timeout, check, env):
+        return subprocess.CompletedProcess(command, -9, stdout="", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        "signal_api._cgroup_memory_status",
+        lambda: "current=900000000 max=1073741824 oom=1 oom_kill=1",
+    )
+
+    result = make_api(tmp_path).send_message(["group.abc"], "Hello")
+
+    assert result.ok is False
+    assert result.status_code == -9
+    assert "SIGKILL (signal 9)" in result.error
+    assert "kernel OOM kill" in result.error
+    assert "max=1073741824" in result.error
+    assert "oom_kill=1" in result.error
 
 
 def test_send_message_timeout(monkeypatch, tmp_path):

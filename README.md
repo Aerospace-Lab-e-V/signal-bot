@@ -89,10 +89,13 @@ now runs `uvicorn app.main:app`.
 
 ## Signal CLI
 
-The Docker image installs the pinned JVM `signal-cli` release on Java 25. The
+The Docker image installs the latest JVM `signal-cli` release on Java 25. The
 JVM distribution is used because upstream describes the GraalVM native image as
 experimental, and native-image failures terminate the process without a useful
-recoverable Java exception. To run maintenance
+recoverable Java exception. The container has a 1 GiB memory limit, and the JVM
+may use up to 45 percent of that limit for its heap. The remaining memory is
+available to Python, thread stacks, JNI/libsignal, direct buffers, and temporary
+files. To run maintenance
 commands manually:
 
 ```sh

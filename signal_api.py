@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import signal
 import subprocess
 import tempfile
 import threading
@@ -111,6 +112,56 @@ def _summarize_command_error(error: str, max_chars: int = SIGNAL_CLI_ERROR_MAX_C
     return f"{error[:head_chars]}{marker}{error[-(available - head_chars):]}"
 
 
+def _cgroup_memory_status(cgroup_root: Path = Path("/sys/fs/cgroup")) -> str:
+    """Return compact cgroup v2 memory diagnostics when available."""
+    values = []
+    for label, filename in (("current", "memory.current"), ("max", "memory.max")):
+        try:
+            values.append(f"{label}={cgroup_root.joinpath(filename).read_text(encoding='utf-8').strip()}")
+        except OSError:
+            pass
+
+    try:
+        events = {}
+        for line in cgroup_root.joinpath("memory.events").read_text(encoding="utf-8").splitlines():
+            key, value = line.split(maxsplit=1)
+            events[key] = value
+        for key in ("oom", "oom_kill", "oom_group_kill"):
+            if key in events:
+                values.append(f"{key}={events[key]}")
+    except (OSError, ValueError):
+        pass
+
+    return " ".join(values)
+
+
+def _command_error(returncode: int, stdout: str = "", stderr: str = "") -> str:
+    details = stderr.strip() or stdout.strip()
+    if returncode < 0:
+        signal_number = -returncode
+        if signal_number == 9:
+            signal_name = "SIGKILL"
+        else:
+            try:
+                signal_name = signal.Signals(signal_number).name
+            except ValueError:
+                signal_name = f"signal {signal_number}"
+
+        error = f"signal-cli was terminated by {signal_name} (signal {signal_number})"
+        if signal_number == 9:
+            error += "; this may be an external or kernel OOM kill"
+        memory_status = _cgroup_memory_status()
+        if memory_status:
+            error += f"; cgroup memory: {memory_status}"
+        else:
+            error += "; inspect the container and host kernel logs"
+        if details:
+            error += f"\n{details}"
+        return _summarize_command_error(error)
+
+    return _summarize_command_error(details or f"signal-cli exited with code {returncode}")
+
+
 def _group_id_for_cli(recipient: str) -> Optional[str]:
     if recipient.startswith("group."):
         return recipient.removeprefix("group.")
@@ -200,9 +251,9 @@ class SignalAPI:
         data = _parse_json_output(stdout)
         if completed.returncode != 0:
             logger.error(
-                "signal-cli failed: returncode=%s stderr=%s",
+                "signal-cli failed: returncode=%s error=%s",
                 completed.returncode,
-                _summarize_command_error(stderr.strip()),
+                _command_error(completed.returncode, stdout, stderr),
             )
 
         return _CommandResult(
@@ -216,8 +267,7 @@ class SignalAPI:
         if result.returncode == 0:
             return SignalAPIResult(ok=True, status_code=0, data=result.data)
 
-        error = result.stderr.strip() or result.stdout.strip() or f"signal-cli exited with code {result.returncode}"
-        error = _summarize_command_error(error)
+        error = _command_error(result.returncode, result.stdout, result.stderr)
         return SignalAPIResult(ok=False, status_code=result.returncode, data=result.data, error=error)
 
     def _send_to_recipient(self, recipient: str, message: str) -> SignalAPIResult:

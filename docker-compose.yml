@@ -2,6 +2,7 @@ services:
   signal-scheduler-web:
     build: .
     restart: always
+    mem_limit: 1g
     environment:
       - TZ=Europe/Berlin
       - SIGNAL_SENDER_NUMBER=${SIGNAL_SENDER_NUMBER:?set SIGNAL_SENDER_NUMBER}
@@ -32,7 +33,7 @@ services:
     # signal-cli/libsignal extracts JNI libraries into /tmp. Keep temporary data
     # out of the container layer; the extracted .so must be on an executable mount.
     tmpfs:
-      - /tmp:rw,exec,size=2048m,mode=1777
+      - /tmp:rw,exec,size=512m,mode=1777
     # Docker's default json-file logger grows without a limit unless rotation is
     # configured. Keep enough history for diagnostics without filling the host.
     logging:

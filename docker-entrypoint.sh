@@ -10,4 +10,5 @@ if [ "$signal_cli_magic" = "7f454c46" ]; then
 fi
 
 echo "Using JVM signal-cli launcher at $signal_cli_path ($("$signal_cli_path" --version))"
+echo "JVM options: JAVA_TOOL_OPTIONS='${JAVA_TOOL_OPTIONS:-}'"
 exec "$@"

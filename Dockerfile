@@ -6,6 +6,7 @@ ARG SIGNAL_CLI_VERSION=latest
 
 ENV JAVA_HOME=/opt/java/openjdk
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=45 -XX:+ExitOnOutOfMemoryError"
 
 COPY --from=java-runtime /opt/java/openjdk /opt/java/openjdk
 
